@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="mobile-web-app-capable" content="yes">
     <title>AR Поиск через камеру</title>
     <style>
         body { margin: 0; overflow: hidden; }
@@ -17,17 +15,97 @@
             left: 0;
             pointer-events: none;
         }
+        .ar-label {
+            position: absolute;
+            border: 2px solid;
+            color: white;
+            padding: 2px;
+            font-family: Arial;
+            font-size: 14px;
+            background: rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 <body>
     <video id="cameraView" autoplay playsinline></video>
     <canvas id="outputCanvas" style="display: none;"></canvas>
     <div id="arElements" class="ar-overlay"></div>
-    
-    <!-- Подключаем библиотеки -->
+
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    <script src="script.js"></script>
+    <script>
+    // Инициализация элементов
+    const video = document.getElementById('cameraView');
+    const canvas = document.getElementById('outputCanvas');
+    const ctx = canvas.getContext('2d');
+    let model;
+
+    // Шаг 1: Запуск камеры
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment" }
+            });
+            video.srcObject = stream;
+            
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                initializeDetection();
+            };
+        } catch (error) {
+            alert('Не удалось получить доступ к камере: ' + error.message);
+        }
+    }
+
+    // Шаг 2: Инициализация обнаружения
+    async function initializeDetection() {
+        model = await cocoSsd.load();
+        detectFrame();
+    }
+
+    // Основной цикл обнаружения
+    async function detectFrame() {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Очищаем предыдущие метки
+        document.getElementById('arElements').innerHTML = '';
+        
+        // Обнаружение объектов
+        const predictions = await model.detect(canvas);
+        handleObjects(predictions);
+        
+        // Рекурсивный вызов
+        requestAnimationFrame(detectFrame);
+    }
+
+    // Обработка объектов
+    function handleObjects(predictions) {
+        predictions.forEach(prediction => {
+            if(prediction.score > 0.7) {
+                const isHuman = prediction.class === 'person';
+                showARLabel(prediction.bbox, prediction.class, isHuman);
+            }
+        });
+    }
+
+    // Отображение меток
+    function showARLabel(bbox, label, isHuman = false) {
+        const [x, y, width, height] = bbox;
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'ar-label';
+        labelDiv.style.left = `${x}px`;
+        labelDiv.style.top = `${y}px`;
+        labelDiv.style.width = `${width}px`;
+        labelDiv.style.height = `${height}px`;
+        labelDiv.style.borderColor = isHuman ? '#ff0000' : '#00ff00';
+        labelDiv.textContent = label;
+        
+        document.getElementById('arElements').appendChild(labelDiv);
+    }
+
+    window.onload = startCamera;
+    </script>
 </body>
 </html>
