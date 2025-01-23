@@ -1,25 +1,31 @@
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-
-<script>
-let model;
-
-async function startDetection() {
-  model = await cocoSsd.load();
-  detectFrame();
-}
-
-async function detectFrame() {
-  // Захват кадра
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
-  // Обнаружение объектов
-  const predictions = await model.detect(canvas);
-  
-  // Обработка результатов
-  processPredictions(predictions);
-  
-  // Рекурсивный вызов
-  requestAnimationFrame(detectFrame);
-}
-</script>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AR Поиск через камеру</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #cameraView {
+            width: 100%;
+            height: 100vh;
+            object-fit: cover;
+        }
+        .ar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <video id="cameraView" autoplay playsinline></video>
+    <canvas id="outputCanvas" style="display: none;"></canvas>
+    <div id="arElements" class="ar-overlay"></div>
+    
+    <!-- Подключаем библиотеки -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
